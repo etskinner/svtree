@@ -46,9 +46,9 @@ for child_subvolume in subvolumes:
             parent_subvolume.children.append(child_subvolume.subvolid)
             break
 
-# print subvolume objects
-for subvolume in subvolumes:
-    print(subvolume.__dict__)
+## print subvolume objectsi (debug)
+#for subvolume in subvolumes:
+#    print(subvolume.__dict__)
 
 # define recusrive tree-ing function
 def find_subvol(subvolid):
