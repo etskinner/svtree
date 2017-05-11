@@ -18,15 +18,15 @@ btrfs_command = ("btrfs subvolume list -p -a --sort path "+str(sys.argv[1])).spl
 btrfs_result = subprocess.run(btrfs_command, stdout=subprocess.PIPE)
 btrfs_result_lines=btrfs_result.stdout.decode('utf-8').splitlines()
 
-# make list of subvolume objects
-subvolumes=[]
-
+# initalize list of subvolume objects
 class Subvolume(object):
-    def __init__(self, subvolid, path):
+    def __init__(self, subvolid, parent, path):
         self.subvolid = subvolid
         self.parent = parent
         self.path = path
         self.children = []
+
+subvolumes=[Subvolume('5',None,"<FS_ROOT>")]
 
 import re
 subvolid_re = re.compile(r"ID (\d+)")
@@ -37,15 +37,36 @@ for line in btrfs_result_lines:
     subvolid = subvolid_re.search(line).group(1)
     parent = parent_re.search(line).group(1)
     path = path_re.search(line).group(1)
-    subvolumes.append(Subvolume(subvolid, path))
+    subvolumes.append(Subvolume(subvolid, parent, path))
 
 # populate children
 for child_subvolume in subvolumes:
     for parent_subvolume in subvolumes:
         if parent_subvolume.subvolid == child_subvolume.parent:
+            parent_subvolume.children.append(child_subvolume.subvolid)
             break
-    parent_subvolume.children.append(child_subvolume.subvolid)
 
 # print subvolume objects
 for subvolume in subvolumes:
     print(subvolume.__dict__)
+
+# define recusrive tree-ing function
+def find_subvol(subvolid):
+    global subvolumes
+    for subvolume in subvolumes:
+        if subvolume.subvolid == subvolid:
+            return subvolume
+
+def make_tree(subvolume):
+    tree = ["|--"+subvolume.path]
+    if subvolume.children == []:
+        return tree
+    else:
+        for child in subvolume.children:
+            tree.extend(make_tree(find_subvol(child)))
+        tree = ["|   "+item for item in tree]
+        return tree
+
+#print result
+print("\n".join(make_tree(find_subvol('5'))))
+
